@@ -431,9 +431,22 @@ a {
   font-weight: 700;
 }
 
-.category-list div {
+.category-list__item {
   display: flex;
   justify-content: space-between;
+  border-radius: 8px;
+  color: inherit;
+  padding: 8px 10px;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.category-list__item:hover,
+.category-list__item--active {
+  background: rgba(128, 255, 219, 0.1);
+  color: var(--blog-primary);
 }
 
 .post-detail {
