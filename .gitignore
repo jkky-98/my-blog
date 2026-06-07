@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .env.*
+secret.txt
 
 frontend/node_modules
 frontend/dist
