@@ -16,6 +16,7 @@ services:
       - --default-time-zone=+00:00
     volumes:
       - jkky-blog-mysql-local-data:/var/lib/mysql
+      - ../../../my-wiki/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
 
 volumes:
   jkky-blog-mysql-local-data:
