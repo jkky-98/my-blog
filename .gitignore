@@ -9,5 +9,6 @@ frontend/.vite
 my-wiki/
 
 backend/build
+backend/**/build
 backend/.gradle
 backend/out
