@@ -2,8 +2,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:jkky_blog}?serverTimezone=UTC&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useUnicode=true&characterEncoding=utf8
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    username: ${DB_USERNAME:blog}
+    password: ${DB_PASSWORD:blog}
   jpa:
     show-sql: true
 
