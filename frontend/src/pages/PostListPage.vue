@@ -4,16 +4,29 @@
       <v-row>
         <v-col cols="12" md="8">
           <div class="page-title">
-            <span>Category / {{ selectedTag || 'All' }}</span>
+            <span>{{ selectedLabel }}</span>
             <h1>Posts</h1>
             <p>{{ pageDescription }}</p>
           </div>
 
           <v-row>
-            <v-col v-for="post in filteredPosts" :key="post.id" cols="12" sm="6">
+            <v-col v-for="post in visiblePosts" :key="post.id" cols="12" sm="6">
               <PostCard :post="post" />
             </v-col>
           </v-row>
+
+          <div v-if="visiblePosts.length < page.totalCount" class="load-more">
+            <v-btn rounded="pill" color="primary" variant="flat" @click="loadMore">
+              더 보기
+            </v-btn>
+          </div>
+
+          <v-empty-state
+            v-if="!visiblePosts.length"
+            headline="No posts"
+            text="선택한 필터에 해당하는 글이 없습니다."
+            title="글이 없습니다"
+          />
         </v-col>
 
         <v-col cols="12" md="4">
@@ -29,7 +42,11 @@
                 <div class="popular-item__thumb" :class="`popular-item__thumb--${post.accent}`" />
                 <div>
                   <strong>{{ post.title }}</strong>
-                  <PostMeta :created-at="post.createdAt" :reading-time="post.readingTime" />
+                  <PostMeta
+                    :created-at="post.createdAt"
+                    :reading-time="post.readingTime"
+                    :view-count="post.viewCount"
+                  />
                 </div>
               </RouterLink>
             </div>
@@ -38,22 +55,37 @@
               <div class="panel-title">Category</div>
               <div class="category-list">
                 <RouterLink
-                  :class="{ 'category-list__item--active': !selectedTag }"
+                  :class="{ 'category-list__item--active': !selectedCategoryKey && !selectedTagKey }"
                   :to="{ name: 'posts' }"
                   class="category-list__item"
                 >
                   <span>&gt; All</span>
-                  <span>({{ posts.length }})</span>
+                  <span>({{ publicTotalCount }})</span>
                 </RouterLink>
                 <RouterLink
-                  v-for="[tag, count] in categories"
-                  :key="tag"
-                  :class="{ 'category-list__item--active': selectedTag === tag }"
-                  :to="{ name: 'posts', query: { tag } }"
+                  v-for="category in categories"
+                  :key="category.key"
+                  :class="{ 'category-list__item--active': selectedCategoryKey === category.key }"
+                  :to="{ name: 'posts', query: { categoryKey: category.key } }"
                   class="category-list__item"
                 >
-                  <span>&gt; {{ tag }}</span>
-                  <span>({{ count }})</span>
+                  <span>&gt; {{ category.name }}</span>
+                  <span>({{ category.count }})</span>
+                </RouterLink>
+              </div>
+            </div>
+
+            <div class="side-panel">
+              <div class="panel-title">Tags</div>
+              <div class="tag-filter-list">
+                <RouterLink
+                  v-for="tag in tags"
+                  :key="tag.key"
+                  :class="{ 'tag-filter-list__item--active': selectedTagKey === tag.key }"
+                  :to="{ name: 'posts', query: { tagKey: tag.key } }"
+                  class="tag-filter-list__item"
+                >
+                  #{{ tag.name }} <span>{{ tag.count }}</span>
                 </RouterLink>
               </div>
             </div>
@@ -65,46 +97,63 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
 
   import PostMeta from '@/components/blog/PostMeta.vue'
   import PostCard from '@/components/blog/PostCard.vue'
-  import { popularPosts, posts } from '@/data/posts'
+  import { getCategories, getPopularPosts, getPublicPosts, getTags } from '@/data/posts'
 
   const route = useRoute()
+  const pageSize = 6
+  const pageNumber = ref(1)
 
-  const selectedTag = computed(() => {
-    return typeof route.query.tag === 'string' ? route.query.tag : ''
+  const selectedCategoryKey = computed(() => {
+    return typeof route.query.categoryKey === 'string' ? route.query.categoryKey : ''
   })
 
-  const filteredPosts = computed(() => {
-    if (!selectedTag.value) {
-      return posts
-    }
+  const selectedTagKey = computed(() => {
+    return typeof route.query.tagKey === 'string' ? route.query.tagKey : ''
+  })
 
-    return posts.filter(post => post.tags.includes(selectedTag.value))
+  watch([selectedCategoryKey, selectedTagKey], () => {
+    pageNumber.value = 1
+  })
+
+  const page = computed(() => {
+    return getPublicPosts({
+      categoryKey: selectedCategoryKey.value,
+      tagKey: selectedTagKey.value,
+      page: 1,
+      size: pageNumber.value * pageSize,
+    })
+  })
+
+  const visiblePosts = computed(() => page.value.items)
+  const popularPosts = getPopularPosts(3)
+  const categories = getCategories()
+  const tags = getTags()
+  const publicTotalCount = getPublicPosts({ size: 1 }).totalCount
+
+  const selectedLabel = computed(() => {
+    const category = categories.find(item => item.key === selectedCategoryKey.value)
+    const tag = tags.find(item => item.key === selectedTagKey.value)
+
+    if (category) return `Category / ${category.name}`
+    if (tag) return `Tag / ${tag.name}`
+    return 'Category / All'
   })
 
   const pageDescription = computed(() => {
-    if (!selectedTag.value) {
-      return '백엔드, 프론트엔드, 디자인을 만들며 남긴 기록.'
-    }
+    const category = categories.find(item => item.key === selectedCategoryKey.value)
+    const tag = tags.find(item => item.key === selectedTagKey.value)
 
-    return `${selectedTag.value} 주제로 남긴 기록.`
+    if (category) return `${category.name} 주제로 남긴 기록.`
+    if (tag) return `${tag.name} 태그로 묶은 기록.`
+    return '백엔드, 프론트엔드, 디자인을 만들며 남긴 기록.'
   })
 
-  const categories = computed(() => {
-    const counts = new Map<string, number>()
-
-    for (const post of posts) {
-      for (const tag of post.tags) {
-        counts.set(tag, (counts.get(tag) ?? 0) + 1)
-      }
-    }
-
-    return Array.from(counts.entries()).sort(([tagA, countA], [tagB, countB]) => {
-      return countB - countA || tagA.localeCompare(tagB)
-    })
-  })
+  function loadMore() {
+    pageNumber.value += 1
+  }
 </script>

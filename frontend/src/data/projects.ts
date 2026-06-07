@@ -1,10 +1,4 @@
-export type ProjectSummary = {
-  id: number
-  name: string
-  description: string
-  stack: string[]
-  status: 'Design' | 'Mockup' | 'Planning'
-}
+import type { ProjectSummary } from '@/types/blog'
 
 export const projects: ProjectSummary[] = [
   {

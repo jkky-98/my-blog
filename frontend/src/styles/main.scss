@@ -583,6 +583,226 @@ a {
   color: var(--blog-primary);
 }
 
+.toc__link--nested {
+  padding-left: 14px;
+  font-size: 0.9rem;
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.tag-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag-filter-list__item {
+  border: 1px solid var(--blog-line);
+  border-radius: 999px;
+  background: rgba(22, 26, 35, 0.74);
+  padding: 7px 12px;
+  color: var(--blog-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.tag-filter-list__item span {
+  margin-left: 6px;
+  color: rgba(239, 247, 245, 0.52);
+}
+
+.tag-filter-list__item:hover,
+.tag-filter-list__item--active {
+  border-color: rgba(128, 255, 219, 0.42);
+  color: var(--blog-primary);
+}
+
+.search-dialog {
+  border: 1px solid var(--blog-line) !important;
+  background: var(--blog-surface) !important;
+}
+
+.search-dialog .v-card-text {
+  display: grid;
+  gap: 14px;
+  padding: 28px !important;
+  text-align: center;
+}
+
+.search-dialog h2 {
+  margin: 0;
+}
+
+.search-dialog p {
+  margin: 0 0 8px;
+  color: var(--blog-muted);
+}
+
+.admin-page {
+  min-height: 78vh;
+  padding: 32px 0 72px;
+}
+
+.admin-page--center {
+  display: grid;
+  place-items: center;
+}
+
+.admin-login {
+  width: min(100%, 420px);
+  border: 1px solid var(--blog-line) !important;
+  background: rgba(22, 26, 35, 0.9) !important;
+}
+
+.admin-login .v-card-text {
+  padding: 28px !important;
+}
+
+.admin-login__title {
+  margin-bottom: 24px;
+}
+
+.admin-login__title span,
+.admin-toolbar span {
+  color: var(--blog-primary);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-login__title h1,
+.admin-toolbar h1 {
+  margin: 6px 0 0;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-filter {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(140px, 180px) minmax(140px, 180px) minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.admin-table {
+  overflow: hidden;
+  border: 1px solid var(--blog-line);
+  border-radius: 8px;
+  background: rgba(22, 26, 35, 0.86) !important;
+}
+
+.admin-table th {
+  color: var(--blog-muted) !important;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  vertical-align: middle;
+}
+
+.admin-table td strong {
+  display: block;
+  max-width: 360px;
+  overflow: hidden;
+  color: var(--blog-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-table td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--blog-muted);
+}
+
+.admin-table__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.admin-pagination {
+  margin-top: 24px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(420px, 1.05fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.editor-panel,
+.editor-preview {
+  border: 1px solid var(--blog-line);
+  border-radius: 8px;
+  background: rgba(22, 26, 35, 0.82);
+  padding: 18px;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.markdown-editor textarea {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  line-height: 1.65;
+}
+
+.editor-preview {
+  position: sticky;
+  top: 92px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.preview-meta {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--blog-line);
+  padding-bottom: 16px;
+}
+
+.preview-meta span {
+  color: var(--blog-primary);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.preview-meta strong {
+  font-size: 1.45rem;
+}
+
+.preview-meta small {
+  color: var(--blog-muted);
+  font-weight: 700;
+}
+
 .app-footer {
   border-top: 1px solid var(--blog-line);
   background: rgba(0, 125, 110, 0.85);
@@ -630,6 +850,21 @@ a {
 
   .sticky-sidebar {
     position: static;
+  }
+
+  .admin-toolbar,
+  .admin-filter {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-preview {
+    position: static;
+    max-height: none;
   }
 }
 

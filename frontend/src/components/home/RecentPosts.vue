@@ -9,7 +9,7 @@
       </div>
 
       <v-row>
-        <v-col v-for="post in posts" :key="post.id" cols="12" sm="6">
+        <v-col v-for="post in recentPosts" :key="post.id" cols="12" sm="6">
           <PostCard :post="post" />
         </v-col>
       </v-row>
@@ -19,5 +19,7 @@
 
 <script setup lang="ts">
   import PostCard from '@/components/blog/PostCard.vue'
-  import { posts } from '@/data/posts'
+  import { getPublicPosts } from '@/data/posts'
+
+  const recentPosts = getPublicPosts({ page: 1, size: 4 }).items
 </script>

@@ -1,7 +1,12 @@
 <template>
   <aside class="toc">
     <div class="section-label">On this page</div>
-    <a v-for="heading in headings" :key="heading.id" :href="`#${heading.id}`">
+    <a
+      v-for="heading in headings"
+      :key="heading.id"
+      :class="{ 'toc__link--nested': heading.level === 3 }"
+      :href="`#${heading.id}`"
+    >
       {{ heading.text }}
     </a>
   </aside>
@@ -25,11 +30,13 @@
   const headings = computed(() => {
     return props.content
       .split('\n')
-      .filter(line => line.startsWith('## '))
+      .filter(line => line.startsWith('## ') || line.startsWith('### '))
       .map(line => {
-        const text = line.replace('## ', '')
+        const level = line.startsWith('### ') ? 3 : 2
+        const text = line.replace(/^#{2,3}\s/, '')
         return {
           id: slugify(text),
+          level,
           text,
         }
       })
