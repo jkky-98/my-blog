@@ -32,11 +32,11 @@ public class Category extends BaseTimeEntity {
 	@Column(name = "name", nullable = false, length = 40)
 	private String name;
 
-	// 중복 판단에 사용하는 정규화 이름이다. 화면 표시에는 사용하지 않는다.
+	// 중복 판단에 사용하는 정규화 이름이다. 예: " Backend "와 "backend"는 모두 "backend"로 저장한다.
 	@Column(name = "normalized_name", nullable = false, length = 40)
 	private String normalizedName;
 
-	// API 필터 요청에 사용하는 고정 key다. 생성 후 표시 이름이 바뀌어도 유지한다.
+	// API 필터 요청에 사용하는 고정 key다. 예: 카테고리 "Spring Boot"는 /api/posts?categoryKey=spring-boot 로 조회한다.
 	@Column(name = "filter_key", nullable = false, length = 60)
 	private String filterKey;
 

@@ -32,11 +32,11 @@ public class Tag extends BaseTimeEntity {
 	@Column(name = "name", nullable = false, length = 30)
 	private String name;
 
-	// 중복 판단에 사용하는 정규화 이름이다. 화면 표시에는 사용하지 않는다.
+	// 중복 판단에 사용하는 정규화 이름이다. 예: " Redis "와 "redis"는 모두 "redis"로 저장한다.
 	@Column(name = "normalized_name", nullable = false, length = 30)
 	private String normalizedName;
 
-	// API 필터 요청에 사용하는 고정 key다. 생성 후 표시 이름이 바뀌어도 유지한다.
+	// API 필터 요청에 사용하는 고정 key다. 예: 태그 "Spring Boot"는 /api/posts?tagKey=spring-boot 로 조회한다.
 	@Column(name = "filter_key", nullable = false, length = 60)
 	private String filterKey;
 
