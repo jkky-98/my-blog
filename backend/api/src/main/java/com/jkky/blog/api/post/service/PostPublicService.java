@@ -14,6 +14,8 @@ import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.entity.PostTag;
 import com.jkky.blog.domain.post.repository.condition.PublicPostSearchCondition;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,6 +46,21 @@ public class PostPublicService {
 		PostSummaryData summaryData = postPublicReader.readPopularPosts(requestLimit);
 
 		return postResponseAssembler.toSummaryResponses(summaryData);
+	}
+
+	public Optional<PostSummaryResponse> getFeaturedPost() {
+		PostSummaryData summaryData = postPublicReader.readFeaturedPosts();
+		if (summaryData.posts().isEmpty()) {
+			return Optional.empty();
+		}
+
+		Post selectedPost = summaryData.posts().get(
+			ThreadLocalRandom.current().nextInt(summaryData.posts().size())
+		);
+
+		return Optional.of(
+			postResponseAssembler.toSummaryResponse(selectedPost, summaryData.tagsOf(selectedPost))
+		);
 	}
 
 	public PostDetailResponse getPost(String slug) {

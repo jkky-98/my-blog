@@ -68,6 +68,19 @@ public class PostQueryRepositoryImpl implements PostQueryRepository {
 	}
 
 	@Override
+	public List<Post> findFeaturedPosts() {
+		return queryFactory
+			.selectFrom(post)
+			.join(post.category, category).fetchJoin()
+			.where(
+				post.status.eq(PostStatus.PUBLISHED),
+				post.featured.isTrue()
+			)
+			.orderBy(post.id.asc())
+			.fetch();
+	}
+
+	@Override
 	public Optional<Post> findBySlugWithCategory(String slug) {
 		Post foundPost = queryFactory
 			.selectFrom(post)

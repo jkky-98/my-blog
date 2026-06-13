@@ -13,5 +13,7 @@ public interface PostQueryRepository {
 
 	List<Post> findPopularPosts(int limit);
 
+	List<Post> findFeaturedPosts();
+
 	Optional<Post> findBySlugWithCategory(String slug);
 }

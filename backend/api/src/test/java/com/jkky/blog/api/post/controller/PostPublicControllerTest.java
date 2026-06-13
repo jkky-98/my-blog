@@ -252,6 +252,37 @@ class PostPublicControllerTest {
 	}
 
 	@Test
+	@DisplayName("대표 글은 공개된 featured 글 중 하나를 요약 응답으로 조회한다")
+	void getFeaturedPostReturnsPublishedFeaturedPost() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		Tag redis = saveTag("Redis", "redis");
+		Post featuredPost = savePost(category, "Featured Post", "featured-post", PostStatus.PUBLISHED, 0, true);
+		savePostTags(featuredPost, redis);
+		savePost(category, "Normal Post", "normal-post", PostStatus.PUBLISHED, 0, false);
+		savePost(category, "Draft Featured", "draft-featured", PostStatus.DRAFT, 0, true);
+
+		mockMvc.perform(get("/api/posts/featured"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(featuredPost.getId()))
+			.andExpect(jsonPath("$.title").value("Featured Post"))
+			.andExpect(jsonPath("$.slug").value("featured-post"))
+			.andExpect(jsonPath("$.featured").value(true))
+			.andExpect(jsonPath("$.tags[0]").value("Redis"))
+			.andExpect(jsonPath("$.content").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("대표 글 후보가 없으면 204 No Content를 반환한다")
+	void getFeaturedPostReturnsNoContent() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		savePost(category, "Normal Post", "normal-post", PostStatus.PUBLISHED, 0, false);
+		savePost(category, "Draft Featured", "draft-featured", PostStatus.DRAFT, 0, true);
+
+		mockMvc.perform(get("/api/posts/featured"))
+			.andExpect(status().isNoContent());
+	}
+
+	@Test
 	@DisplayName("존재하지 않는 slug는 POST_NOT_FOUND를 반환한다")
 	void getPostReturnsPostNotFound() throws Exception {
 		mockMvc.perform(get("/api/posts/missing-post"))
@@ -308,6 +339,17 @@ class PostPublicControllerTest {
 	}
 
 	private Post savePost(Category category, String title, String slug, PostStatus status, int viewCount) {
+		return savePost(category, title, slug, status, viewCount, false);
+	}
+
+	private Post savePost(
+		Category category,
+		String title,
+		String slug,
+		PostStatus status,
+		int viewCount,
+		boolean featured
+	) {
 		Post post = Post.builder()
 			.category(category)
 			.title(title)
@@ -316,7 +358,7 @@ class PostPublicControllerTest {
 			.content("# " + title)
 			.readingTime(3)
 			.author("Jin")
-			.featured(false)
+			.featured(featured)
 			.status(status)
 			.build();
 		for (int count = 0; count < viewCount; count++) {

@@ -74,7 +74,7 @@ public class PostResponseAssembler {
 			.build();
 	}
 
-	private PostSummaryResponse toSummaryResponse(Post post, List<PostTag> postTags) {
+	public PostSummaryResponse toSummaryResponse(Post post, List<PostTag> postTags) {
 		Category category = post.getCategory();
 		List<Tag> tags = tagsOf(postTags);
 

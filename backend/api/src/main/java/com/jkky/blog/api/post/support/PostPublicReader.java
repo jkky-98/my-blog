@@ -42,6 +42,15 @@ public class PostPublicReader {
 		return new PostSummaryData(posts, readTagsByPostId(posts));
 	}
 
+	public PostSummaryData readFeaturedPosts() {
+		List<Post> posts = postRepository.findFeaturedPosts();
+		if (posts.isEmpty()) {
+			return new PostSummaryData(posts, Map.of());
+		}
+
+		return new PostSummaryData(posts, readTagsByPostId(posts));
+	}
+
 	public Optional<Post> readPostBySlug(String slug) {
 		return postRepository.findBySlugWithCategory(slug);
 	}
