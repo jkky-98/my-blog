@@ -4,7 +4,7 @@ import com.jkky.blog.domain.category.entity.Category;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CategoryRepository extends JpaRepository<Category, Long> {
+public interface CategoryRepository extends JpaRepository<Category, Long>, CategoryQueryRepository {
 
 	Optional<Category> findByNormalizedName(String normalizedName);
 
