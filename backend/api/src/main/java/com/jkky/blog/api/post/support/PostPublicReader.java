@@ -8,6 +8,7 @@ import com.jkky.blog.domain.post.PublicPostSearchCondition;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,5 +39,13 @@ public class PostPublicReader {
 			));
 
 		return new PostPageData(posts, tagsByPostId);
+	}
+
+	public Optional<Post> readPostBySlug(String slug) {
+		return postRepository.findBySlugWithCategory(slug);
+	}
+
+	public List<PostTag> readPostTags(Post post) {
+		return postTagRepository.findByPostOrderByIdAsc(post);
 	}
 }

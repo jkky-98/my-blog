@@ -9,6 +9,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +50,17 @@ public class PostQueryRepositoryImpl implements PostQueryRepository {
 			.fetchOne();
 
 		return new PageImpl<>(content, pageable, total == null ? 0L : total);
+	}
+
+	@Override
+	public Optional<Post> findBySlugWithCategory(String slug) {
+		Post foundPost = queryFactory
+			.selectFrom(post)
+			.join(post.category, category).fetchJoin()
+			.where(post.slug.eq(slug))
+			.fetchOne();
+
+		return Optional.ofNullable(foundPost);
 	}
 
 	private BooleanExpression categoryKeyEq(String categoryKey) {

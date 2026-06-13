@@ -27,7 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = BlogApiApplication.class)
 @AutoConfigureMockMvc
-@DisplayName("공개 글 목록 API")
+@DisplayName("공개 글 조회 API")
 @TestPropertySource(properties = {
 	"spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
 	"spring.datasource.url=jdbc:mysql://${DB_TEST_HOST:localhost}:${DB_TEST_PORT:3307}/${DB_TEST_NAME:jkky_blog_test}?createDatabaseIfNotExist=true&serverTimezone=UTC&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useUnicode=true&characterEncoding=utf8",
@@ -179,6 +179,72 @@ class PostPublicControllerTest {
 			.andExpect(jsonPath("$.size").value(6))
 			.andExpect(jsonPath("$.totalCount").value(0))
 			.andExpect(jsonPath("$.totalPages").value(0));
+	}
+
+	@Test
+	@DisplayName("slug로 공개 글 상세를 조회한다")
+	void getPostReturnsPublicDetail() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		Tag spring = saveTag("Spring Boot", "spring-boot");
+		Tag redis = saveTag("Redis", "redis");
+		Post post = savePost(category, "Detail Post", "detail-post", PostStatus.PUBLISHED);
+		savePostTags(post, spring, redis);
+
+		mockMvc.perform(get("/api/posts/detail-post"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(post.getId()))
+			.andExpect(jsonPath("$.title").value("Detail Post"))
+			.andExpect(jsonPath("$.slug").value("detail-post"))
+			.andExpect(jsonPath("$.description").value("Detail Post description"))
+			.andExpect(jsonPath("$.category").value("Backend"))
+			.andExpect(jsonPath("$.categoryKey").value("backend"))
+			.andExpect(jsonPath("$.tags[0]").value("Spring Boot"))
+			.andExpect(jsonPath("$.tags[1]").value("Redis"))
+			.andExpect(jsonPath("$.tagKeys[0]").value("spring-boot"))
+			.andExpect(jsonPath("$.tagKeys[1]").value("redis"))
+			.andExpect(jsonPath("$.createdAt", endsWith("+09:00")))
+			.andExpect(jsonPath("$.updatedAt", endsWith("+09:00")))
+			.andExpect(jsonPath("$.readingTime").value(3))
+			.andExpect(jsonPath("$.viewCount").value(0))
+			.andExpect(jsonPath("$.author").value("Jin"))
+			.andExpect(jsonPath("$.featured").value(false))
+			.andExpect(jsonPath("$.content").value("# Detail Post"));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 slug는 POST_NOT_FOUND를 반환한다")
+	void getPostReturnsPostNotFound() throws Exception {
+		mockMvc.perform(get("/api/posts/missing-post"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
+			.andExpect(jsonPath("$.message").value("글을 찾을 수 없습니다."))
+			.andExpect(jsonPath("$.fieldErrors").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("초안 글 상세 공개 조회는 POST_NOT_PUBLIC을 반환한다")
+	void getPostRejectsDraftPost() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		savePost(category, "Draft Detail", "draft-detail", PostStatus.DRAFT);
+
+		mockMvc.perform(get("/api/posts/draft-detail"))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("POST_NOT_PUBLIC"))
+			.andExpect(jsonPath("$.message").value("비공개 글이거나 삭제된 글입니다."))
+			.andExpect(jsonPath("$.fieldErrors").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("숨김 글 상세 공개 조회는 POST_NOT_PUBLIC을 반환한다")
+	void getPostRejectsHiddenPost() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		savePost(category, "Hidden Detail", "hidden-detail", PostStatus.HIDDEN);
+
+		mockMvc.perform(get("/api/posts/hidden-detail"))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("POST_NOT_PUBLIC"))
+			.andExpect(jsonPath("$.message").value("비공개 글이거나 삭제된 글입니다."))
+			.andExpect(jsonPath("$.fieldErrors").doesNotExist());
 	}
 
 	private Category saveCategory(String name, String filterKey) {

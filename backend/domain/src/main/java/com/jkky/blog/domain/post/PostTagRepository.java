@@ -13,5 +13,8 @@ public interface PostTagRepository extends JpaRepository<PostTag, Long> {
 	List<PostTag> findByPost(Post post);
 
 	@EntityGraph(attributePaths = "tag")
+	List<PostTag> findByPostOrderByIdAsc(Post post);
+
+	@EntityGraph(attributePaths = "tag")
 	List<PostTag> findByPostInOrderByIdAsc(Collection<Post> posts);
 }

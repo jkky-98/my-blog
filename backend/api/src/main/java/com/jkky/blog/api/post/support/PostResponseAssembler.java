@@ -1,5 +1,6 @@
 package com.jkky.blog.api.post.support;
 
+import com.jkky.blog.api.post.PostDetailResponse;
 import com.jkky.blog.api.post.PostListResponse;
 import com.jkky.blog.api.post.PostSummaryResponse;
 import com.jkky.blog.domain.category.Category;
@@ -14,7 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PostSummaryAssembler {
+public class PostResponseAssembler {
 
 	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
@@ -32,11 +33,44 @@ public class PostSummaryAssembler {
 			.build();
 	}
 
+	public PostDetailResponse toDetailResponse(Post post, List<PostTag> postTags) {
+		Category category = post.getCategory();
+		List<Tag> tags = tagsOf(postTags);
+
+		return PostDetailResponse.builder()
+			.id(post.getId())
+			.title(post.getTitle())
+			.slug(post.getSlug())
+			.description(post.getDescription())
+			.category(category.getName())
+			.categoryKey(category.getFilterKey())
+			.tags(
+				tags.stream()
+					.map(Tag::getName)
+					.toList()
+			)
+			.tagKeys(
+				tags.stream()
+					.map(Tag::getFilterKey)
+					.toList()
+			)
+			.createdAt(
+				toKstIsoDateTime(post.getCreatedAt())
+			)
+			.updatedAt(
+				toKstIsoDateTime(post.getUpdatedAt())
+			)
+			.readingTime(post.getReadingTime())
+			.viewCount(post.getViewCount())
+			.author(post.getAuthor())
+			.featured(post.isFeatured())
+			.content(post.getContent())
+			.build();
+	}
+
 	private PostSummaryResponse toSummaryResponse(Post post, List<PostTag> postTags) {
 		Category category = post.getCategory();
-		List<Tag> tags = postTags.stream()
-			.map(PostTag::getTag)
-			.toList();
+		List<Tag> tags = tagsOf(postTags);
 
 		return PostSummaryResponse.builder()
 			.id(post.getId())
@@ -66,6 +100,12 @@ public class PostSummaryAssembler {
 			.author(post.getAuthor())
 			.featured(post.isFeatured())
 			.build();
+	}
+
+	private List<Tag> tagsOf(List<PostTag> postTags) {
+		return postTags.stream()
+			.map(PostTag::getTag)
+			.toList();
 	}
 
 	private String toKstIsoDateTime(LocalDateTime dateTime) {
