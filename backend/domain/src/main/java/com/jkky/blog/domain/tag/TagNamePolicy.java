@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
  *
  * <p>예: {@code " Spring   Boot "}는 표시 이름 {@code "Spring Boot"},
  * 정규화 이름 {@code "spring boot"}, 필터 key {@code "spring-boot"}가 된다.
- * 한글은 query parameter 값으로 사용할 수 있으므로 제거하지 않는다.</p>
+ * 한글은 query parameter 값으로 사용할 수 있으므로 제거하지 않는다.
+ * 요청 태그 목록의 빈 값 제거와 중복 제거는 {@link TagInputCleaner}가 담당한다.</p>
  */
 public class TagNamePolicy {
 
