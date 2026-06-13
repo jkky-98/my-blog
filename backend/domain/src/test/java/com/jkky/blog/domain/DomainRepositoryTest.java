@@ -16,6 +16,7 @@ import com.jkky.blog.domain.tag.Tag;
 import com.jkky.blog.domain.tag.TagRepository;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -28,13 +29,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
+@DisplayName("도메인 엔티티와 리포지토리 매핑")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
 	"spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
-	"spring.datasource.url=jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:jkky_blog}?serverTimezone=UTC&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useUnicode=true&characterEncoding=utf8",
-	"spring.datasource.username=${DB_USERNAME:blog}",
-	"spring.datasource.password=${DB_PASSWORD:blog}",
-	"spring.jpa.hibernate.ddl-auto=validate",
+	"spring.datasource.url=jdbc:mysql://${DB_TEST_HOST:localhost}:${DB_TEST_PORT:3307}/${DB_TEST_NAME:jkky_blog_test}?createDatabaseIfNotExist=true&serverTimezone=UTC&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useUnicode=true&characterEncoding=utf8",
+	"spring.datasource.username=${DB_TEST_USERNAME:root}",
+	"spring.datasource.password=${DB_TEST_PASSWORD:root}",
+	"spring.jpa.hibernate.ddl-auto=create-drop",
 	"spring.jpa.properties.hibernate.jdbc.time_zone=UTC"
 })
 class DomainRepositoryTest {
@@ -61,6 +63,7 @@ class DomainRepositoryTest {
 	private JdbcTemplate jdbcTemplate;
 
 	@Test
+	@DisplayName("관리자 계정은 저장 후 username으로 조회할 수 있다")
 	void adminUserIsPersistedAndFoundByUsername() {
 		AdminUser adminUser = AdminUser.builder()
 			.username("admin")
@@ -81,6 +84,7 @@ class DomainRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("카테고리는 정규화 이름과 필터 key가 중복되면 저장할 수 없다")
 	void categoryNormalizedNameAndFilterKeyAreUnique() {
 		categoryRepository.saveAndFlush(Category.builder()
 			.name("Backend")
@@ -97,6 +101,7 @@ class DomainRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("태그는 정규화 이름과 필터 key가 중복되면 저장할 수 없다")
 	void tagNormalizedNameAndFilterKeyAreUnique() {
 		tagRepository.saveAndFlush(Tag.builder()
 			.name("Redis")
@@ -113,6 +118,7 @@ class DomainRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("글 slug는 중복될 수 없고 공개 상태는 DB 값으로 저장된다")
 	void postSlugIsUniqueAndStatusIsStoredAsDatabaseValue() {
 		Category category = categoryRepository.save(Category.builder()
 			.name("Backend")
@@ -154,6 +160,7 @@ class DomainRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("글과 태그 연결은 저장할 수 있고 같은 연결은 중복 저장할 수 없다")
 	void postTagStoresPostAndTagRelationshipAndRejectsDuplicateLink() {
 		Category category = categoryRepository.save(Category.builder()
 			.name("Backend")
