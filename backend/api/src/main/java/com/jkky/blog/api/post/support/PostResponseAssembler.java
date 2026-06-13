@@ -1,12 +1,12 @@
 package com.jkky.blog.api.post.support;
 
-import com.jkky.blog.api.post.PostDetailResponse;
-import com.jkky.blog.api.post.PostListResponse;
-import com.jkky.blog.api.post.PostSummaryResponse;
-import com.jkky.blog.domain.category.Category;
-import com.jkky.blog.domain.post.Post;
-import com.jkky.blog.domain.post.PostTag;
-import com.jkky.blog.domain.tag.Tag;
+import com.jkky.blog.api.post.dto.PostDetailResponse;
+import com.jkky.blog.api.post.dto.PostListResponse;
+import com.jkky.blog.api.post.dto.PostSummaryResponse;
+import com.jkky.blog.domain.category.entity.Category;
+import com.jkky.blog.domain.post.entity.Post;
+import com.jkky.blog.domain.post.entity.PostTag;
+import com.jkky.blog.domain.tag.entity.Tag;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;

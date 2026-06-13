@@ -1,10 +1,10 @@
 package com.jkky.blog.api.post.support;
 
-import com.jkky.blog.domain.post.Post;
-import com.jkky.blog.domain.post.PostRepository;
-import com.jkky.blog.domain.post.PostTag;
-import com.jkky.blog.domain.post.PostTagRepository;
-import com.jkky.blog.domain.post.PublicPostSearchCondition;
+import com.jkky.blog.domain.post.entity.Post;
+import com.jkky.blog.domain.post.entity.PostTag;
+import com.jkky.blog.domain.post.repository.PostRepository;
+import com.jkky.blog.domain.post.repository.PostTagRepository;
+import com.jkky.blog.domain.post.repository.condition.PublicPostSearchCondition;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

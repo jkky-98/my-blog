@@ -1,7 +1,7 @@
 package com.jkky.blog.api.post.support;
 
-import com.jkky.blog.domain.post.Post;
-import com.jkky.blog.domain.post.PostTag;
+import com.jkky.blog.domain.post.entity.Post;
+import com.jkky.blog.domain.post.entity.PostTag;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.Page;
