@@ -16,8 +16,8 @@ public record ErrorResponse(
 
 	public static ErrorResponse validation(Map<String, String> fieldErrors) {
 		return new ErrorResponse(
-			ErrorCode.VALIDATION_FAILED.name(),
-			ErrorCode.VALIDATION_FAILED.getMessage(),
+			ErrorCode.VALIDATION_ERROR.name(),
+			ErrorCode.VALIDATION_ERROR.getMessage(),
 			fieldErrors
 		);
 	}
