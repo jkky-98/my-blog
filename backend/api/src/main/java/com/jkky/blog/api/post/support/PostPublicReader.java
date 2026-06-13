@@ -30,15 +30,16 @@ public class PostPublicReader {
 			return new PostPageData(posts, Map.of());
 		}
 
-		List<PostTag> postTags = postTagRepository.findByPostInOrderByIdAsc(posts.getContent());
-		Map<Long, List<PostTag>> tagsByPostId = postTags.stream()
-			.collect(Collectors.groupingBy(
-				postTag -> postTag.getPost().getId(),
-				LinkedHashMap::new,
-				Collectors.toList()
-			));
+		return new PostPageData(posts, readTagsByPostId(posts.getContent()));
+	}
 
-		return new PostPageData(posts, tagsByPostId);
+	public PostSummaryData readPopularPosts(int limit) {
+		List<Post> posts = postRepository.findPopularPosts(limit);
+		if (posts.isEmpty()) {
+			return new PostSummaryData(posts, Map.of());
+		}
+
+		return new PostSummaryData(posts, readTagsByPostId(posts));
 	}
 
 	public Optional<Post> readPostBySlug(String slug) {
@@ -47,5 +48,16 @@ public class PostPublicReader {
 
 	public List<PostTag> readPostTags(Post post) {
 		return postTagRepository.findByPostOrderByIdAsc(post);
+	}
+
+	private Map<Long, List<PostTag>> readTagsByPostId(List<Post> posts) {
+		List<PostTag> postTags = postTagRepository.findByPostInOrderByIdAsc(posts);
+
+		return postTags.stream()
+			.collect(Collectors.groupingBy(
+				postTag -> postTag.getPost().getId(),
+				LinkedHashMap::new,
+				Collectors.toList()
+			));
 	}
 }

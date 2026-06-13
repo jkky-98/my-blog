@@ -4,9 +4,11 @@ import com.jkky.blog.api.common.error.BlogException;
 import com.jkky.blog.api.common.error.ErrorCode;
 import com.jkky.blog.api.post.dto.PostDetailResponse;
 import com.jkky.blog.api.post.dto.PostListResponse;
+import com.jkky.blog.api.post.dto.PostSummaryResponse;
 import com.jkky.blog.api.post.support.PostPageData;
 import com.jkky.blog.api.post.support.PostPublicReader;
 import com.jkky.blog.api.post.support.PostResponseAssembler;
+import com.jkky.blog.api.post.support.PostSummaryData;
 import com.jkky.blog.domain.post.entity.Post;
 import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.entity.PostTag;
@@ -22,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PostPublicService {
 
+	private static final int DEFAULT_POPULAR_LIMIT = 3;
+
 	private final PostPublicReader postPublicReader;
 	private final PostResponseAssembler postResponseAssembler;
 
@@ -33,6 +37,13 @@ public class PostPublicService {
 		PostPageData pageData = postPublicReader.readPublicPosts(condition, pageable);
 
 		return postResponseAssembler.toListResponse(pageData, pageable);
+	}
+
+	public List<PostSummaryResponse> getPopularPosts(Integer limit) {
+		int requestLimit = limit == null || limit < 1 ? DEFAULT_POPULAR_LIMIT : limit;
+		PostSummaryData summaryData = postPublicReader.readPopularPosts(requestLimit);
+
+		return postResponseAssembler.toSummaryResponses(summaryData);
 	}
 
 	public PostDetailResponse getPost(String slug) {

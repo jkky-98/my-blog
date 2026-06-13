@@ -212,6 +212,46 @@ class PostPublicControllerTest {
 	}
 
 	@Test
+	@DisplayName("인기 글은 공개 글만 조회수 내림차순으로 기본 3개를 조회한다")
+	void getPopularPostsReturnsDefaultLimit() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		Tag redis = saveTag("Redis", "redis");
+		Post mostViewed = savePost(category, "Most Viewed", "most-viewed", PostStatus.PUBLISHED, 7);
+		savePostTags(mostViewed, redis);
+		Post secondViewed = savePost(category, "Second Viewed", "second-viewed", PostStatus.PUBLISHED, 5);
+		savePostTags(secondViewed, redis);
+		Post thirdViewed = savePost(category, "Third Viewed", "third-viewed", PostStatus.PUBLISHED, 3);
+		savePostTags(thirdViewed, redis);
+		savePost(category, "Fourth Viewed", "fourth-viewed", PostStatus.PUBLISHED, 1);
+		savePost(category, "Draft Popular", "draft-popular", PostStatus.DRAFT, 100);
+
+		mockMvc.perform(get("/api/posts/popular"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$", hasSize(3)))
+			.andExpect(jsonPath("$[0].id").value(mostViewed.getId()))
+			.andExpect(jsonPath("$[0].viewCount").value(7))
+			.andExpect(jsonPath("$[0].tags[0]").value("Redis"))
+			.andExpect(jsonPath("$[1].id").value(secondViewed.getId()))
+			.andExpect(jsonPath("$[1].viewCount").value(5))
+			.andExpect(jsonPath("$[2].id").value(thirdViewed.getId()))
+			.andExpect(jsonPath("$[2].viewCount").value(3));
+	}
+
+	@Test
+	@DisplayName("인기 글 limit query로 조회 개수를 조절한다")
+	void getPopularPostsUsesLimitParameter() throws Exception {
+		Category category = saveCategory("Backend", "backend");
+		savePost(category, "First Popular", "first-popular", PostStatus.PUBLISHED, 3);
+		savePost(category, "Second Popular", "second-popular", PostStatus.PUBLISHED, 2);
+
+		mockMvc.perform(get("/api/posts/popular")
+				.param("limit", "1"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].title").value("First Popular"));
+	}
+
+	@Test
 	@DisplayName("존재하지 않는 slug는 POST_NOT_FOUND를 반환한다")
 	void getPostReturnsPostNotFound() throws Exception {
 		mockMvc.perform(get("/api/posts/missing-post"))
@@ -264,7 +304,11 @@ class PostPublicControllerTest {
 	}
 
 	private Post savePost(Category category, String title, String slug, PostStatus status) {
-		return postRepository.saveAndFlush(Post.builder()
+		return savePost(category, title, slug, status, 0);
+	}
+
+	private Post savePost(Category category, String title, String slug, PostStatus status, int viewCount) {
+		Post post = Post.builder()
 			.category(category)
 			.title(title)
 			.slug(slug)
@@ -274,7 +318,12 @@ class PostPublicControllerTest {
 			.author("Jin")
 			.featured(false)
 			.status(status)
-			.build());
+			.build();
+		for (int count = 0; count < viewCount; count++) {
+			post.increaseViewCount();
+		}
+
+		return postRepository.saveAndFlush(post);
 	}
 
 	private void savePostTags(Post post, Tag... tags) {

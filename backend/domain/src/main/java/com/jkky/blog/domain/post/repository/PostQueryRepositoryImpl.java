@@ -57,6 +57,17 @@ public class PostQueryRepositoryImpl implements PostQueryRepository {
 	}
 
 	@Override
+	public List<Post> findPopularPosts(int limit) {
+		return queryFactory
+			.selectFrom(post)
+			.join(post.category, category).fetchJoin()
+			.where(post.status.eq(PostStatus.PUBLISHED))
+			.orderBy(post.viewCount.desc(), post.createdAt.desc(), post.id.desc())
+			.limit(limit)
+			.fetch();
+	}
+
+	@Override
 	public Optional<Post> findBySlugWithCategory(String slug) {
 		Post foundPost = queryFactory
 			.selectFrom(post)

@@ -33,6 +33,12 @@ public class PostResponseAssembler {
 			.build();
 	}
 
+	public List<PostSummaryResponse> toSummaryResponses(PostSummaryData summaryData) {
+		return summaryData.posts().stream()
+			.map(post -> toSummaryResponse(post, summaryData.tagsOf(post)))
+			.toList();
+	}
+
 	public PostDetailResponse toDetailResponse(Post post, List<PostTag> postTags) {
 		Category category = post.getCategory();
 		List<Tag> tags = tagsOf(postTags);
