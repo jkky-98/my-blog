@@ -3,6 +3,11 @@ spring:
     name: blog-api
   jackson:
     time-zone: Asia/Seoul
+  data:
+    web:
+      pageable:
+        one-indexed-parameters: true
+        default-page-size: 6
   profiles:
     default: local
   jpa:
