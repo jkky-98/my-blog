@@ -105,4 +105,22 @@ public class Post extends BaseTimeEntity {
 	public void increaseViewCount() {
 		this.viewCount++;
 	}
+
+	public void update(
+		Category category,
+		String title,
+		String description,
+		String content,
+		int readingTime,
+		boolean featured,
+		PostStatus status
+	) {
+		this.category = category;
+		this.title = title;
+		this.description = description;
+		this.content = content;
+		this.readingTime = readingTime;
+		this.featured = featured;
+		this.status = status;
+	}
 }

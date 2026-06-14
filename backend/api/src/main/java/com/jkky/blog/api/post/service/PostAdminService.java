@@ -3,23 +3,27 @@ package com.jkky.blog.api.post.service;
 import com.jkky.blog.api.common.error.BlogException;
 import com.jkky.blog.api.common.error.ErrorCode;
 import com.jkky.blog.api.common.error.RequestValidationException;
-import com.jkky.blog.api.post.dto.AdminPostCreateRequest;
 import com.jkky.blog.api.post.dto.AdminPostDetailResponse;
+import com.jkky.blog.api.post.dto.AdminPostListResponse;
+import com.jkky.blog.api.post.dto.AdminPostSaveRequest;
 import com.jkky.blog.api.post.support.PostAdminCreateCommand;
 import com.jkky.blog.api.post.support.PostAdminReader;
 import com.jkky.blog.api.post.support.PostAdminResponseAssembler;
+import com.jkky.blog.api.post.support.PostAdminUpdateCommand;
 import com.jkky.blog.api.post.support.PostAdminWriter;
 import com.jkky.blog.domain.auth.entity.AdminUser;
 import com.jkky.blog.domain.auth.repository.AdminUserRepository;
 import com.jkky.blog.domain.category.policy.CategoryNamePolicy;
 import com.jkky.blog.domain.post.entity.Post;
 import com.jkky.blog.domain.post.entity.PostStatus;
+import com.jkky.blog.domain.post.repository.condition.AdminPostSearchCondition;
 import com.jkky.blog.domain.post.policy.PostDescriptionGenerator;
 import com.jkky.blog.domain.post.policy.ReadingTimeCalculator;
 import com.jkky.blog.domain.post.policy.SlugGenerator;
 import com.jkky.blog.domain.tag.policy.TagInputCleaner;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -44,8 +48,28 @@ public class PostAdminService {
 	private final PostDescriptionGenerator descriptionGenerator = new PostDescriptionGenerator();
 	private final ReadingTimeCalculator readingTimeCalculator = new ReadingTimeCalculator();
 
+	public AdminPostListResponse getPosts(
+		String status,
+		String categoryKey,
+		String tagKey,
+		String keyword,
+		Pageable pageable
+	) {
+		AdminPostSearchCondition condition = AdminPostSearchCondition.builder()
+			.status(parseOptionalStatus(status))
+			.categoryKey(categoryKey)
+			.tagKey(tagKey)
+			.keyword(keyword)
+			.build();
+
+		return responseAssembler.toListResponse(
+			postAdminReader.readPosts(condition, pageable),
+			pageable
+		);
+	}
+
 	@Transactional
-	public AdminPostDetailResponse create(AdminPostCreateRequest request) {
+	public AdminPostDetailResponse create(AdminPostSaveRequest request) {
 		List<String> tagNames = cleanTagNames(request.tags());
 		PostStatus status = parseStatus(request.status().trim());
 		AdminUser adminUser = getCurrentAdmin();
@@ -68,6 +92,30 @@ public class PostAdminService {
 			.build();
 
 		return postAdminWriter.create(command);
+	}
+
+	@Transactional
+	public AdminPostDetailResponse update(Long id, AdminPostSaveRequest request) {
+		List<String> tagNames = cleanTagNames(request.tags());
+		PostStatus status = parseStatus(request.status().trim());
+		String title = request.title().trim();
+		String content = request.content().trim();
+
+		PostAdminUpdateCommand command = PostAdminUpdateCommand.builder()
+			.id(id)
+			.title(title)
+			.categoryNormalizedName(
+				categoryNamePolicy.toNormalizedName(request.category())
+			)
+			.tagNames(tagNames)
+			.description(descriptionGenerator.generate(content))
+			.content(content)
+			.readingTime(readingTimeCalculator.calculate(content))
+			.featured(request.featured())
+			.status(status)
+			.build();
+
+		return postAdminWriter.update(command);
 	}
 
 	public AdminPostDetailResponse getDetail(Long id) {
@@ -103,6 +151,14 @@ public class PostAdminService {
 		} catch (IllegalArgumentException exception) {
 			throw RequestValidationException.of("status", "상태는 draft, published, hidden 중 하나여야 합니다.");
 		}
+	}
+
+	private PostStatus parseOptionalStatus(String status) {
+		if (status == null || status.isBlank()) {
+			return null;
+		}
+
+		return parseStatus(status.trim());
 	}
 
 	private AdminUser getCurrentAdmin() {

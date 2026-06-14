@@ -6,6 +6,7 @@ import static com.jkky.blog.domain.post.entity.QPost.post;
 import com.jkky.blog.domain.post.entity.Post;
 import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.entity.QPostTag;
+import com.jkky.blog.domain.post.repository.condition.AdminPostSearchCondition;
 import com.jkky.blog.domain.post.repository.condition.PublicPostSearchCondition;
 import com.jkky.blog.domain.tag.entity.QTag;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -57,6 +58,37 @@ public class PostQueryRepositoryImpl implements PostQueryRepository {
 	}
 
 	@Override
+	public Page<Post> findAdminPosts(AdminPostSearchCondition condition, Pageable pageable) {
+		List<Post> content = queryFactory
+			.selectFrom(post)
+			.join(post.category, category).fetchJoin()
+			.where(
+				adminStatus(condition.status()),
+				categoryKeyEq(condition.categoryKey()),
+				tagKeyExists(condition.tagKey()),
+				titleContains(condition.keyword())
+			)
+			.orderBy(post.createdAt.desc(), post.id.desc())
+			.offset(pageable.getOffset())
+			.limit(pageable.getPageSize())
+			.fetch();
+
+		Long total = queryFactory
+			.select(post.count())
+			.from(post)
+			.join(post.category, category)
+			.where(
+				adminStatus(condition.status()),
+				categoryKeyEq(condition.categoryKey()),
+				tagKeyExists(condition.tagKey()),
+				titleContains(condition.keyword())
+			)
+			.fetchOne();
+
+		return new PageImpl<>(content, pageable, total == null ? 0L : total);
+	}
+
+	@Override
 	public List<Post> findPopularPosts(int limit) {
 		return queryFactory
 			.selectFrom(post)
@@ -97,6 +129,22 @@ public class PostQueryRepositoryImpl implements PostQueryRepository {
 		}
 
 		return category.filterKey.eq(categoryKey);
+	}
+
+	private BooleanExpression adminStatus(PostStatus status) {
+		if (status != null) {
+			return post.status.eq(status);
+		}
+
+		return post.status.in(PostStatus.DRAFT, PostStatus.PUBLISHED);
+	}
+
+	private BooleanExpression titleContains(String keyword) {
+		if (!StringUtils.hasText(keyword)) {
+			return null;
+		}
+
+		return post.title.contains(keyword.trim());
 	}
 
 	private BooleanExpression tagKeyExists(String tagKey) {

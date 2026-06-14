@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-public record AdminPostCreateRequest(
+public record AdminPostSaveRequest(
 	@NotBlank(message = "제목을 입력해 주세요.")
 	@Size(max = 120, message = "제목은 최대 120자까지 입력할 수 있습니다.")
 	String title,

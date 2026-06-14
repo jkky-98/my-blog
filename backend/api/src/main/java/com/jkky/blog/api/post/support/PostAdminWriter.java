@@ -1,5 +1,7 @@
 package com.jkky.blog.api.post.support;
 
+import com.jkky.blog.api.common.error.BlogException;
+import com.jkky.blog.api.common.error.ErrorCode;
 import com.jkky.blog.api.common.error.RequestValidationException;
 import com.jkky.blog.api.post.dto.AdminPostDetailResponse;
 import com.jkky.blog.domain.category.entity.Category;
@@ -51,6 +53,29 @@ public class PostAdminWriter {
 
 		Post savedPost = postRepository.saveAndFlush(post);
 		List<PostTag> postTags = savePostTags(savedPost, tags);
+
+		return responseAssembler.toDetailResponse(savedPost, postTags);
+	}
+
+	public AdminPostDetailResponse update(PostAdminUpdateCommand command) {
+		Post post = postRepository.findById(command.id())
+			.orElseThrow(() -> new BlogException(ErrorCode.POST_NOT_FOUND));
+		Category category = findCategory(command.categoryNormalizedName());
+		List<Tag> tags = findOrCreateTags(command.tagNames());
+
+		post.update(
+			category,
+			command.title(),
+			command.description(),
+			command.content(),
+			command.readingTime(),
+			command.featured(),
+			command.status()
+		);
+
+		replacePostTags(post, tags);
+		Post savedPost = postRepository.saveAndFlush(post);
+		List<PostTag> postTags = postTagRepository.findByPostOrderByIdAsc(savedPost);
 
 		return responseAssembler.toDetailResponse(savedPost, postTags);
 	}
@@ -113,5 +138,11 @@ public class PostAdminWriter {
 			.toList();
 
 		return postTagRepository.saveAll(postTags);
+	}
+
+	private void replacePostTags(Post post, List<Tag> tags) {
+		postTagRepository.deleteAllInBatch(postTagRepository.findByPost(post));
+		postTagRepository.flush();
+		savePostTags(post, tags);
 	}
 }

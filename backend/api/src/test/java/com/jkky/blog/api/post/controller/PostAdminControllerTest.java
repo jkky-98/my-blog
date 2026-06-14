@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -124,12 +125,176 @@ class PostAdminControllerTest {
 	}
 
 	@Test
+	@DisplayName("관리자 글 목록은 기본으로 초안과 공개 글만 최신순으로 조회한다")
+	void getPostsReturnsDraftAndPublishedByDefault() throws Exception {
+		Category category = saveCategory("Backend");
+		Tag redis = saveTag("Redis", "redis");
+		Post draft = savePost(category, "Draft Post", "draft-post", PostStatus.DRAFT);
+		savePostTags(draft, redis);
+		Post published = savePost(category, "Published Post", "published-post", PostStatus.PUBLISHED);
+		savePostTags(published, redis);
+		Post hidden = savePost(category, "Hidden Post", "hidden-post", PostStatus.HIDDEN);
+		savePostTags(hidden, redis);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(get("/api/admin/posts")
+				.with(session(csrfSession.session())))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items", hasSize(2)))
+			.andExpect(jsonPath("$.items[0].id").value(published.getId()))
+			.andExpect(jsonPath("$.items[0].status").value("published"))
+			.andExpect(jsonPath("$.items[1].id").value(draft.getId()))
+			.andExpect(jsonPath("$.items[1].status").value("draft"))
+			.andExpect(jsonPath("$.page").value(1))
+			.andExpect(jsonPath("$.size").value(10))
+			.andExpect(jsonPath("$.totalCount").value(2))
+			.andExpect(jsonPath("$.totalPages").value(1));
+	}
+
+	@Test
+	@DisplayName("관리자 글 목록은 hidden 상태를 명시했을 때 숨김 글만 조회한다")
+	void getPostsFiltersHiddenStatus() throws Exception {
+		Category category = saveCategory("Backend");
+		Tag redis = saveTag("Redis", "redis");
+		savePostTags(savePost(category, "Draft Post", "draft-post", PostStatus.DRAFT), redis);
+		Post hidden = savePost(category, "Hidden Post", "hidden-post", PostStatus.HIDDEN);
+		savePostTags(hidden, redis);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(get("/api/admin/posts")
+				.with(session(csrfSession.session()))
+				.param("status", "hidden"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items", hasSize(1)))
+			.andExpect(jsonPath("$.items[0].id").value(hidden.getId()))
+			.andExpect(jsonPath("$.items[0].status").value("hidden"))
+			.andExpect(jsonPath("$.totalCount").value(1));
+	}
+
+	@Test
+	@DisplayName("관리자 글 목록은 status, categoryKey, tagKey, keyword로 필터링한다")
+	void getPostsFiltersByStatusCategoryTagAndKeyword() throws Exception {
+		Category backend = saveCategory("Backend");
+		Category frontend = saveCategory("Frontend");
+		Tag redis = saveTag("Redis", "redis");
+		Tag spring = saveTag("Spring Boot", "spring-boot");
+		Post target = savePost(backend, "Redis Cache Notes", "redis-cache-notes", PostStatus.PUBLISHED);
+		savePostTags(target, redis);
+		Post otherTag = savePost(backend, "Spring Cache Notes", "spring-cache-notes", PostStatus.PUBLISHED);
+		savePostTags(otherTag, spring);
+		Post otherCategory = savePost(frontend, "Redis Cache UI", "redis-cache-ui", PostStatus.PUBLISHED);
+		savePostTags(otherCategory, redis);
+		Post draft = savePost(backend, "Redis Cache Draft", "redis-cache-draft", PostStatus.DRAFT);
+		savePostTags(draft, redis);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(get("/api/admin/posts")
+				.with(session(csrfSession.session()))
+				.param("status", "published")
+				.param("categoryKey", "backend")
+				.param("tagKey", "redis")
+				.param("keyword", "Cache"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items", hasSize(1)))
+			.andExpect(jsonPath("$.items[0].id").value(target.getId()))
+			.andExpect(jsonPath("$.items[0].title").value("Redis Cache Notes"))
+			.andExpect(jsonPath("$.items[0].categoryKey").value("backend"))
+			.andExpect(jsonPath("$.items[0].tagKeys[0]").value("redis"))
+			.andExpect(jsonPath("$.items[0].status").value("published"))
+			.andExpect(jsonPath("$.totalCount").value(1));
+	}
+
+	@Test
 	@DisplayName("존재하지 않는 관리자 글 상세 조회는 POST_NOT_FOUND를 반환한다")
 	void getPostDetailWithUnknownIdReturnsPostNotFound() throws Exception {
 		CsrfSession csrfSession = login();
 
 		mockMvc.perform(get("/api/admin/posts/{id}", 999_999L)
 				.with(session(csrfSession.session())))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
+			.andExpect(jsonPath("$.message").value("글을 찾을 수 없습니다."));
+	}
+
+	@Test
+	@DisplayName("로그인한 관리자는 기존 글을 수정하고 slug와 author는 유지한다")
+	void updatePost() throws Exception {
+		Category backend = saveCategory("Backend");
+		saveCategory("Frontend");
+		Tag redis = saveTag("Redis", "redis");
+		Tag spring = saveTag("Spring Boot", "spring-boot");
+		Post post = postRepository.saveAndFlush(Post.builder()
+			.category(backend)
+			.title("Original Title")
+			.slug("original-title")
+			.description("Original description")
+			.content("# Original Title")
+			.readingTime(3)
+			.author("Original Author")
+			.featured(false)
+			.status(PostStatus.DRAFT)
+			.build());
+		savePostTags(post, redis);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(put("/api/admin/posts/{id}", post.getId())
+				.with(session(csrfSession.session()))
+				.header(csrfSession.headerName(), csrfSession.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "title": "Updated Title",
+					  "category": "Frontend",
+					  "tags": ["Spring Boot"],
+					  "featured": true,
+					  "status": "published",
+					  "content": "# Updated Title\\n\\n수정된 본문입니다."
+					}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(post.getId()))
+			.andExpect(jsonPath("$.title").value("Updated Title"))
+			.andExpect(jsonPath("$.slug").value("original-title"))
+			.andExpect(jsonPath("$.description").value("Updated Title 수정된 본문입니다."))
+			.andExpect(jsonPath("$.category").value("Frontend"))
+			.andExpect(jsonPath("$.categoryKey").value("frontend"))
+			.andExpect(jsonPath("$.tags", hasSize(1)))
+			.andExpect(jsonPath("$.tags[0]").value("Spring Boot"))
+			.andExpect(jsonPath("$.tagKeys[0]").value("spring-boot"))
+			.andExpect(jsonPath("$.readingTime").value(1))
+			.andExpect(jsonPath("$.author").value("Original Author"))
+			.andExpect(jsonPath("$.featured").value(true))
+			.andExpect(jsonPath("$.status").value("published"))
+			.andExpect(jsonPath("$.content").value("# Updated Title\n\n수정된 본문입니다."));
+
+		Post savedPost = postRepository.findById(post.getId()).orElseThrow();
+		assertThat(savedPost.getSlug()).isEqualTo("original-title");
+		assertThat(savedPost.getAuthor()).isEqualTo("Original Author");
+		assertThat(postTagRepository.findByPostOrderByIdAsc(savedPost))
+			.extracting(postTag -> postTag.getTag().getName())
+			.containsExactly("Spring Boot");
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 글 수정은 POST_NOT_FOUND를 반환한다")
+	void updateUnknownPostReturnsPostNotFound() throws Exception {
+		saveCategory("Backend");
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(put("/api/admin/posts/{id}", 999_999L)
+				.with(session(csrfSession.session()))
+				.header(csrfSession.headerName(), csrfSession.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "title": "Unknown",
+					  "category": "Backend",
+					  "tags": ["Redis"],
+					  "featured": false,
+					  "status": "draft",
+					  "content": "# Unknown"
+					}
+					"""))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
 			.andExpect(jsonPath("$.message").value("글을 찾을 수 없습니다."));
@@ -279,6 +444,20 @@ class PostAdminControllerTest {
 			.name(name)
 			.normalizedName(name.toLowerCase())
 			.filterKey(filterKey)
+			.build());
+	}
+
+	private Post savePost(Category category, String title, String slug, PostStatus status) {
+		return postRepository.saveAndFlush(Post.builder()
+			.category(category)
+			.title(title)
+			.slug(slug)
+			.description(title + " description")
+			.content("# " + title)
+			.readingTime(1)
+			.author("Jin")
+			.featured(false)
+			.status(status)
 			.build());
 	}
 
