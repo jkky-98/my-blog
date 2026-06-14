@@ -6,10 +6,13 @@ import com.jkky.blog.api.common.error.RequestValidationException;
 import com.jkky.blog.api.post.dto.AdminPostCreateRequest;
 import com.jkky.blog.api.post.dto.AdminPostDetailResponse;
 import com.jkky.blog.api.post.support.PostAdminCreateCommand;
+import com.jkky.blog.api.post.support.PostAdminReader;
+import com.jkky.blog.api.post.support.PostAdminResponseAssembler;
 import com.jkky.blog.api.post.support.PostAdminWriter;
 import com.jkky.blog.domain.auth.entity.AdminUser;
 import com.jkky.blog.domain.auth.repository.AdminUserRepository;
 import com.jkky.blog.domain.category.policy.CategoryNamePolicy;
+import com.jkky.blog.domain.post.entity.Post;
 import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.policy.PostDescriptionGenerator;
 import com.jkky.blog.domain.post.policy.ReadingTimeCalculator;
@@ -31,7 +34,9 @@ public class PostAdminService {
 	private static final int MAX_TAG_NAME_LENGTH = 30;
 
 	private final AdminUserRepository adminUserRepository;
+	private final PostAdminReader postAdminReader;
 	private final PostAdminWriter postAdminWriter;
+	private final PostAdminResponseAssembler responseAssembler;
 
 	private final CategoryNamePolicy categoryNamePolicy = new CategoryNamePolicy();
 	private final TagInputCleaner tagInputCleaner = new TagInputCleaner();
@@ -63,6 +68,16 @@ public class PostAdminService {
 			.build();
 
 		return postAdminWriter.create(command);
+	}
+
+	public AdminPostDetailResponse getDetail(Long id) {
+		Post post = postAdminReader.readPost(id)
+			.orElseThrow(() -> new BlogException(ErrorCode.POST_NOT_FOUND));
+
+		return responseAssembler.toDetailResponse(
+			post,
+			postAdminReader.readPostTags(post)
+		);
 	}
 
 	private List<String> cleanTagNames(List<String> tagNames) {

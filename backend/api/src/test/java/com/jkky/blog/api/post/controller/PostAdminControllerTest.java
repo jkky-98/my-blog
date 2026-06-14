@@ -13,10 +13,13 @@ import com.jkky.blog.domain.category.entity.Category;
 import com.jkky.blog.domain.category.policy.CategoryNamePolicy;
 import com.jkky.blog.domain.category.repository.CategoryRepository;
 import com.jkky.blog.domain.post.entity.Post;
+import com.jkky.blog.domain.post.entity.PostTag;
 import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.repository.PostRepository;
 import com.jkky.blog.domain.post.repository.PostTagRepository;
+import com.jkky.blog.domain.tag.entity.Tag;
 import com.jkky.blog.domain.tag.repository.TagRepository;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -75,6 +78,61 @@ class PostAdminControllerTest {
 		postRepository.deleteAllInBatch();
 		tagRepository.deleteAllInBatch();
 		categoryRepository.deleteAllInBatch();
+	}
+
+	@Test
+	@DisplayName("로그인한 관리자는 숨김 글 상세도 id로 조회한다")
+	void getPostDetailReturnsHiddenPost() throws Exception {
+		Category category = saveCategory("Backend");
+		Tag redis = saveTag("Redis", "redis");
+		Tag spring = saveTag("Spring Boot", "spring-boot");
+		Post post = postRepository.saveAndFlush(Post.builder()
+			.category(category)
+			.title("Hidden Post")
+			.slug("hidden-post")
+			.description("Hidden Post description")
+			.content("# Hidden Post")
+			.readingTime(2)
+			.author("Jin")
+			.featured(true)
+			.status(PostStatus.HIDDEN)
+			.build());
+		savePostTags(post, redis, spring);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(get("/api/admin/posts/{id}", post.getId())
+				.with(session(csrfSession.session())))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(post.getId()))
+			.andExpect(jsonPath("$.title").value("Hidden Post"))
+			.andExpect(jsonPath("$.slug").value("hidden-post"))
+			.andExpect(jsonPath("$.description").value("Hidden Post description"))
+			.andExpect(jsonPath("$.category").value("Backend"))
+			.andExpect(jsonPath("$.categoryKey").value("backend"))
+			.andExpect(jsonPath("$.tags[0]").value("Redis"))
+			.andExpect(jsonPath("$.tags[1]").value("Spring Boot"))
+			.andExpect(jsonPath("$.tagKeys[0]").value("redis"))
+			.andExpect(jsonPath("$.tagKeys[1]").value("spring-boot"))
+			.andExpect(jsonPath("$.createdAt", endsWith("+09:00")))
+			.andExpect(jsonPath("$.updatedAt", endsWith("+09:00")))
+			.andExpect(jsonPath("$.readingTime").value(2))
+			.andExpect(jsonPath("$.viewCount").value(0))
+			.andExpect(jsonPath("$.author").value("Jin"))
+			.andExpect(jsonPath("$.featured").value(true))
+			.andExpect(jsonPath("$.status").value("hidden"))
+			.andExpect(jsonPath("$.content").value("# Hidden Post"));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 관리자 글 상세 조회는 POST_NOT_FOUND를 반환한다")
+	void getPostDetailWithUnknownIdReturnsPostNotFound() throws Exception {
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(get("/api/admin/posts/{id}", 999_999L)
+				.with(session(csrfSession.session())))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
+			.andExpect(jsonPath("$.message").value("글을 찾을 수 없습니다."));
 	}
 
 	@Test
@@ -214,6 +272,25 @@ class PostAdminControllerTest {
 			.normalizedName(categoryNamePolicy.toNormalizedName(name))
 			.filterKey(categoryNamePolicy.toFilterKey(name))
 			.build());
+	}
+
+	private Tag saveTag(String name, String filterKey) {
+		return tagRepository.save(Tag.builder()
+			.name(name)
+			.normalizedName(name.toLowerCase())
+			.filterKey(filterKey)
+			.build());
+	}
+
+	private void savePostTags(Post post, Tag... tags) {
+		List<PostTag> postTags = Arrays.stream(tags)
+			.map(tag -> PostTag.builder()
+				.post(post)
+				.tag(tag)
+				.build())
+			.toList();
+
+		postTagRepository.saveAll(postTags);
 	}
 
 	private CsrfSession login() throws Exception {

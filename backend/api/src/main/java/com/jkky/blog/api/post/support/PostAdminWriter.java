@@ -11,9 +11,6 @@ import com.jkky.blog.domain.post.repository.PostTagRepository;
 import com.jkky.blog.domain.tag.entity.Tag;
 import com.jkky.blog.domain.tag.policy.TagNamePolicy;
 import com.jkky.blog.domain.tag.repository.TagRepository;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,12 +24,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PostAdminWriter {
 
-	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-
 	private final CategoryRepository categoryRepository;
 	private final TagRepository tagRepository;
 	private final PostRepository postRepository;
 	private final PostTagRepository postTagRepository;
+	private final PostAdminResponseAssembler responseAssembler;
 
 	private final TagNamePolicy tagNamePolicy = new TagNamePolicy();
 
@@ -56,7 +52,7 @@ public class PostAdminWriter {
 		Post savedPost = postRepository.saveAndFlush(post);
 		List<PostTag> postTags = savePostTags(savedPost, tags);
 
-		return toDetailResponse(savedPost, postTags);
+		return responseAssembler.toDetailResponse(savedPost, postTags);
 	}
 
 	private Category findCategory(String normalizedName) {
@@ -117,50 +113,5 @@ public class PostAdminWriter {
 			.toList();
 
 		return postTagRepository.saveAll(postTags);
-	}
-
-	private AdminPostDetailResponse toDetailResponse(Post post, List<PostTag> postTags) {
-		Category category = post.getCategory();
-		List<Tag> tags = postTags.stream()
-			.map(PostTag::getTag)
-			.toList();
-
-		return AdminPostDetailResponse.builder()
-			.id(post.getId())
-			.title(post.getTitle())
-			.slug(post.getSlug())
-			.description(post.getDescription())
-			.category(category.getName())
-			.categoryKey(category.getFilterKey())
-			.tags(
-				tags.stream()
-					.map(Tag::getName)
-					.toList()
-			)
-			.tagKeys(
-				tags.stream()
-					.map(Tag::getFilterKey)
-					.toList()
-			)
-			.createdAt(
-				toKstIsoDateTime(post.getCreatedAt())
-			)
-			.updatedAt(
-				toKstIsoDateTime(post.getUpdatedAt())
-			)
-			.readingTime(post.getReadingTime())
-			.viewCount(post.getViewCount())
-			.author(post.getAuthor())
-			.featured(post.isFeatured())
-			.status(post.getStatus().getValue())
-			.content(post.getContent())
-			.build();
-	}
-
-	private String toKstIsoDateTime(LocalDateTime dateTime) {
-		return dateTime.atOffset(ZoneOffset.UTC)
-			.atZoneSameInstant(KST)
-			.toOffsetDateTime()
-			.toString();
 	}
 }
