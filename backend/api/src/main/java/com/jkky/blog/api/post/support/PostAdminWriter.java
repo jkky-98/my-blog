@@ -8,6 +8,7 @@ import com.jkky.blog.domain.category.entity.Category;
 import com.jkky.blog.domain.category.repository.CategoryRepository;
 import com.jkky.blog.domain.post.entity.Post;
 import com.jkky.blog.domain.post.entity.PostTag;
+import com.jkky.blog.domain.post.entity.PostStatus;
 import com.jkky.blog.domain.post.repository.PostRepository;
 import com.jkky.blog.domain.post.repository.PostTagRepository;
 import com.jkky.blog.domain.tag.entity.Tag;
@@ -74,6 +75,17 @@ public class PostAdminWriter {
 		);
 
 		replacePostTags(post, tags);
+		Post savedPost = postRepository.saveAndFlush(post);
+		List<PostTag> postTags = postTagRepository.findByPostOrderByIdAsc(savedPost);
+
+		return responseAssembler.toDetailResponse(savedPost, postTags);
+	}
+
+	public AdminPostDetailResponse updateStatus(Long id, PostStatus status) {
+		Post post = postRepository.findById(id)
+			.orElseThrow(() -> new BlogException(ErrorCode.POST_NOT_FOUND));
+
+		post.updateStatus(status);
 		Post savedPost = postRepository.saveAndFlush(post);
 		List<PostTag> postTags = postTagRepository.findByPostOrderByIdAsc(savedPost);
 

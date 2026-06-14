@@ -123,4 +123,8 @@ public class Post extends BaseTimeEntity {
 		this.featured = featured;
 		this.status = status;
 	}
+
+	public void updateStatus(PostStatus status) {
+		this.status = status;
+	}
 }

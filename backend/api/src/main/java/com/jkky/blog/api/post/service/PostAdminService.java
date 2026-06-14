@@ -6,6 +6,7 @@ import com.jkky.blog.api.common.error.RequestValidationException;
 import com.jkky.blog.api.post.dto.AdminPostDetailResponse;
 import com.jkky.blog.api.post.dto.AdminPostListResponse;
 import com.jkky.blog.api.post.dto.AdminPostSaveRequest;
+import com.jkky.blog.api.post.dto.AdminPostStatusUpdateRequest;
 import com.jkky.blog.api.post.support.PostAdminCreateCommand;
 import com.jkky.blog.api.post.support.PostAdminReader;
 import com.jkky.blog.api.post.support.PostAdminResponseAssembler;
@@ -116,6 +117,12 @@ public class PostAdminService {
 			.build();
 
 		return postAdminWriter.update(command);
+	}
+
+	@Transactional
+	public AdminPostDetailResponse updateStatus(Long id, AdminPostStatusUpdateRequest request) {
+		PostStatus status = parseStatus(request.status().trim());
+		return postAdminWriter.updateStatus(id, status);
 	}
 
 	public AdminPostDetailResponse getDetail(Long id) {

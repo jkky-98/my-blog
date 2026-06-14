@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -293,6 +294,81 @@ class PostAdminControllerTest {
 					  "featured": false,
 					  "status": "draft",
 					  "content": "# Unknown"
+					}
+					"""))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
+			.andExpect(jsonPath("$.message").value("글을 찾을 수 없습니다."));
+	}
+
+	@Test
+	@DisplayName("로그인한 관리자는 글 상태만 변경한다")
+	void updatePostStatus() throws Exception {
+		Category category = saveCategory("Backend");
+		Tag redis = saveTag("Redis", "redis");
+		Post post = savePost(category, "Draft Post", "draft-post", PostStatus.DRAFT);
+		savePostTags(post, redis);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(patch("/api/admin/posts/{id}/status", post.getId())
+				.with(session(csrfSession.session()))
+				.header(csrfSession.headerName(), csrfSession.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "status": "hidden"
+					}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(post.getId()))
+			.andExpect(jsonPath("$.title").value("Draft Post"))
+			.andExpect(jsonPath("$.slug").value("draft-post"))
+			.andExpect(jsonPath("$.description").value("Draft Post description"))
+			.andExpect(jsonPath("$.tags[0]").value("Redis"))
+			.andExpect(jsonPath("$.status").value("hidden"))
+			.andExpect(jsonPath("$.content").value("# Draft Post"));
+
+		Post savedPost = postRepository.findById(post.getId()).orElseThrow();
+		assertThat(savedPost.getStatus()).isEqualTo(PostStatus.HIDDEN);
+		assertThat(savedPost.getTitle()).isEqualTo("Draft Post");
+		assertThat(postTagRepository.findByPostOrderByIdAsc(savedPost))
+			.extracting(postTag -> postTag.getTag().getName())
+			.containsExactly("Redis");
+	}
+
+	@Test
+	@DisplayName("잘못된 상태로 글 상태를 변경하면 VALIDATION_ERROR를 반환한다")
+	void updatePostStatusWithInvalidStatusReturnsValidationError() throws Exception {
+		Category category = saveCategory("Backend");
+		Post post = savePost(category, "Draft Post", "draft-post", PostStatus.DRAFT);
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(patch("/api/admin/posts/{id}/status", post.getId())
+				.with(session(csrfSession.session()))
+				.header(csrfSession.headerName(), csrfSession.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "status": "deleted"
+					}
+					"""))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+			.andExpect(jsonPath("$.fieldErrors.status").value("상태는 draft, published, hidden 중 하나여야 합니다."));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 글 상태 변경은 POST_NOT_FOUND를 반환한다")
+	void updateUnknownPostStatusReturnsPostNotFound() throws Exception {
+		CsrfSession csrfSession = login();
+
+		mockMvc.perform(patch("/api/admin/posts/{id}/status", 999_999L)
+				.with(session(csrfSession.session()))
+				.header(csrfSession.headerName(), csrfSession.token())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "status": "hidden"
 					}
 					"""))
 			.andExpect(status().isNotFound())
