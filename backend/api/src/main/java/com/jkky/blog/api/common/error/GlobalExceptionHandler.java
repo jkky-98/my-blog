@@ -35,6 +35,13 @@ public class GlobalExceptionHandler {
 			.body(ErrorResponse.validation(fieldErrors));
 	}
 
+	@ExceptionHandler(RequestValidationException.class)
+	public ResponseEntity<ErrorResponse> handleRequestValidation(RequestValidationException exception) {
+		return ResponseEntity
+			.badRequest()
+			.body(ErrorResponse.validation(exception.getFieldErrors()));
+	}
+
 	@ExceptionHandler({
 		HttpMessageNotReadableException.class,
 		MethodArgumentTypeMismatchException.class,
